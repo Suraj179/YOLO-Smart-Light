@@ -1,0 +1,6 @@
+.env
+mosquitto
+*.pt
+person_detection.py
+demo.py
+config.h
