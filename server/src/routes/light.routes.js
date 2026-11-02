@@ -1,4 +1,4 @@
-
+const authenticateToken = require("../middleware/auth.middleware");
 const express = require("express");
 const {
     systemState,
@@ -8,7 +8,7 @@ const {
 
 const router = express.Router();
 
-router.post("/", (req, res) => {
+router.post("/",authenticateToken, (req, res) => {
     const { state } = req.body;
 
     if (typeof state !== "boolean") {

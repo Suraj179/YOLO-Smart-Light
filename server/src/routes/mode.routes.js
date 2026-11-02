@@ -1,5 +1,6 @@
 
 const express = require("express");
+const authenticateToken = require("../middleware/auth.middleware");
 
 const {
     systemState,
@@ -10,7 +11,7 @@ const {
 
 const router = express.Router();
 
-router.post("/", (req, res) => {
+router.post("/", authenticateToken, (req, res) => {
     const { mode } = req.body;
 
     // Validate requested mode.

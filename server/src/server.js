@@ -5,7 +5,7 @@ const { port } = require("./config");
 // Load the MQTT service so the broker connection starts.
 require("./services/mqtt.service");
 
-const server = app.listen(port, () => {
+const server = app.listen(port, "0.0.0.0", () => {
     console.log(
         `Smart Lighting Backend running on port ${port}`
     );
