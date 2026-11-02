@@ -6,7 +6,7 @@ NODE_SERVER_URL = "http://localhost:3000/api/detection"
 
 # Load YOLO model
 # model = YOLO("yolo11n.pt")
-model = YOLO("E:/YOLO-Smart-Light/python/yolo11n.pt")
+model = YOLO("../python/yolo11n.pt")
 
 # Open webcam
 cap = cv2.VideoCapture(0)

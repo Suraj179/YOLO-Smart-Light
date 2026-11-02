@@ -4,6 +4,7 @@ node_modules/
 # Environment / Secret variables
 .env
 *.env
+server_all.js
 
 # Logs
 npm-debug.log*
