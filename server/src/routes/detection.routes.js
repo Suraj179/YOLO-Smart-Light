@@ -23,8 +23,10 @@ router.post("/", (req, res) => {
 
     // Record only changes in detection status.
     // This avoids storing an event for every webcam frame.
+    let eventId = null;
+
     if (personDetected !== previousPersonDetected) {
-        db.prepare(`
+        const result = db.prepare(`
             INSERT INTO detection_events (
                 person_detected,
                 confidence,
@@ -39,6 +41,8 @@ router.post("/", (req, res) => {
                 : 0,
             new Date().toISOString()
         );
+
+        eventId = Number(result.lastInsertRowid);
     }
 
 
@@ -73,6 +77,7 @@ router.post("/", (req, res) => {
 
     res.json({
         success: true,
+        eventId,
         state: systemState
     });
 });

@@ -1,11 +1,17 @@
+
 import cv2
 import requests
 from ultralytics import YOLO
 
+# --------------------------------
+# CONFIGURATION
+# --------------------------------
+
 NODE_SERVER_URL = "http://localhost:3000/api/detection"
 
+IMAGE_UPLOAD_URL = "http://localhost:3000/api/history"
+
 # Load YOLO model
-# model = YOLO("yolo11n.pt")
 model = YOLO("../python/yolo11n.pt")
 
 # Open webcam
@@ -18,8 +24,13 @@ if not cap.isOpened():
 # Previous detection state
 previous_state = False
 
+# HTTP session for backend communication
+session = requests.Session()
+
 print("YOLO state detection started")
+print("Image evidence upload enabled")
 print("Press Q to quit")
+
 
 while True:
 
@@ -33,7 +44,7 @@ while True:
     # Run YOLO
     results = model(frame, verbose=False)
 
-    # Current state
+    # Current detection state
     person_detected = False
     highest_confidence = 0.0
 
@@ -88,15 +99,15 @@ while True:
         if person_detected:
 
             print(
-                f"STATE CHANGE → PERSON_DETECTED "
+                f"STATE CHANGE -> PERSON_DETECTED "
                 f"(confidence={highest_confidence:.2f})"
             )
 
         else:
 
-            print("STATE CHANGE → PERSON_LEFT")
+            print("STATE CHANGE -> PERSON_LEFT")
 
-        # Send state change to Node.js
+        # Prepare detection information
         detection_data = {
             "personDetected": person_detected,
             "confidence": highest_confidence
@@ -104,16 +115,85 @@ while True:
 
         try:
 
-            response = requests.post(
+            # --------------------------------
+            # 1. SEND DETECTION TO NODE.JS
+            # --------------------------------
+
+            response = session.post(
                 NODE_SERVER_URL,
                 json=detection_data,
-                timeout=2
+                timeout=5
             )
 
-            print(
-                "Node.js response:",
-                response.json()
-            )
+            response.raise_for_status()
+
+            response_data = response.json()
+
+            print("Node.js response:", response_data)
+
+            # Retrieve the newly created history event ID
+            event_id = response_data.get("eventId")
+
+            if event_id is None:
+                print(
+                    "Warning: Backend did not return an event ID."
+                )
+
+            else:
+
+                # --------------------------------
+                # 2. ENCODE CURRENT FRAME AS JPEG
+                # --------------------------------
+
+                success, encoded_image = cv2.imencode(
+                    ".jpg",
+                    frame,
+                    [cv2.IMWRITE_JPEG_QUALITY, 85]
+                )
+
+                if not success:
+                    print("Could not encode image.")
+                else:
+
+                    image_bytes = encoded_image.tobytes()
+
+                    # --------------------------------
+                    # 3. UPLOAD IMAGE TO NODE.JS
+                    # --------------------------------
+
+                    upload_url = (
+                        f"{IMAGE_UPLOAD_URL}/{event_id}/image"
+                    )
+
+                    files = {
+                        "image": (
+                            f"event-{event_id}.jpg",
+                            image_bytes,
+                            "image/jpeg"
+                        )
+                    }
+
+                    try:
+
+                        upload_response = session.post(
+                            upload_url,
+                            files=files,
+                            timeout=10
+                        )
+
+                        upload_response.raise_for_status()
+
+                        print(
+                            "Image upload response:",
+                            upload_response.json()
+                        )
+
+                    except requests.RequestException as error:
+
+                        print(
+                            "Image upload failed:",
+                            error
+                        )
 
         except requests.RequestException as error:
 
@@ -122,10 +202,13 @@ while True:
                 error
             )
 
-    # Update previous state
+    # Update previous detection state
     previous_state = person_detected
 
-    # Display current state
+    # --------------------------------
+    # DISPLAY CURRENT STATE
+    # --------------------------------
+
     if person_detected:
         status = "PERSON DETECTED"
     else:
@@ -150,5 +233,13 @@ while True:
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
 
+
+# --------------------------------
+# CLEANUP
+# --------------------------------
+
 cap.release()
 cv2.destroyAllWindows()
+session.close()
+
+print("YOLO detection stopped.")

@@ -1,5 +1,4 @@
-
-import { apiRequest } from './api';
+import { apiRequest, API_BASE_URL } from './api';
 import { getToken } from './auth';
 
 // Retrieve current system state.
@@ -50,4 +49,20 @@ export async function updateLight(state) {
         },
         body: JSON.stringify({ state }),
     });
+}
+
+// Construct an authenticated image URL for a detection event.
+export async function getHistoryImageUrl(eventId) {
+    const token = await getToken();
+
+    if (!token) {
+        throw new Error('Authentication required.');
+    }
+
+    return {
+        uri: `${API_BASE_URL}/history/${eventId}/image`,
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    };
 }
