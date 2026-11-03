@@ -28,6 +28,14 @@ db.exec(`
             strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
         )
     );
+    CREATE TABLE IF NOT EXISTS detection_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        person_detected INTEGER NOT NULL
+            CHECK (person_detected IN (0, 1)),
+        confidence REAL NOT NULL DEFAULT 0,
+        detected_at TEXT NOT NULL,
+        image_path TEXT
+    );
 `);
 
 console.log("SQLite database initialized.");

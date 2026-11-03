@@ -1,4 +1,4 @@
-
+const db = require("../database/database");
 const express = require("express");
 const {
     systemState,
@@ -21,11 +21,32 @@ router.post("/", (req, res) => {
     const previousPersonDetected =
         systemState.ai.personDetected;
 
+    // Record only changes in detection status.
+    // This avoids storing an event for every webcam frame.
+    if (personDetected !== previousPersonDetected) {
+        db.prepare(`
+            INSERT INTO detection_events (
+                person_detected,
+                confidence,
+                detected_at
+            )
+            VALUES (?, ?, ?)
+        `).run(
+            personDetected ? 1 : 0,
+            typeof confidence === "number" &&
+                Number.isFinite(confidence)
+                ? confidence
+                : 0,
+            new Date().toISOString()
+        );
+    }
+
+
     systemState.ai.personDetected = personDetected;
 
     systemState.ai.confidence =
         typeof confidence === "number" &&
-        Number.isFinite(confidence)
+            Number.isFinite(confidence)
             ? confidence
             : 0;
 

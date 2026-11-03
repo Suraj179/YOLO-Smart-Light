@@ -1,5 +1,5 @@
 
-const API_BASE_URL = "http://192.168.0.92:3000/api";
+const API_BASE_URL = "http://192.168.0.104:3000/api";
 
 export async function apiRequest(endpoint, options = {}) {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {

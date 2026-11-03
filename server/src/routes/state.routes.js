@@ -1,4 +1,4 @@
-
+const authenticateToken = require("../middleware/auth.middleware");
 const express = require("express");
 const { systemState } = require("../services/light.service");
 
@@ -10,7 +10,7 @@ router.get("/", (req, res) => {
     });
 });
 
-router.get("/state", (req, res) => {
+router.get("/state", authenticateToken, (req, res) => {
     res.json(systemState);
 });
 
