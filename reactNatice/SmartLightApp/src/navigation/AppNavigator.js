@@ -28,16 +28,19 @@ function MainTabs() {
             <Tab.Screen
                 name="Dashboard"
                 component={DashboardScreen}
+                options={{ headerShown: false }}
             />
 
             <Tab.Screen
                 name="History"
                 component={HistoryScreen}
+                options={{ headerShown: false }}
             />
 
             <Tab.Screen
                 name="Profile"
                 component={ProfileScreen}
+                options={{ headerShown: false }}
             />
         </Tab.Navigator>
     );
