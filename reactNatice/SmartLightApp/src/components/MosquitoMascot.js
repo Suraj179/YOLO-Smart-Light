@@ -16,16 +16,20 @@ import Svg, {
 const VB_W = 200;
 const VB_H = 190;
 
+const BULB_PATH =
+    'M 82 100 C 65 108, 55 125, 60 148 C 65 170, 85 185, 100 185 C 115 185, 135 170, 140 148 C 145 125, 135 108, 118 100 Z';
+
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
 /**
  * Animated mosquito with a glowing lightbulb abdomen.
  *
  * Props
- *  - width:  rendered width in px (height scales automatically)
- *  - shy:    true -> mosquito covers its eyes (use while a password field is focused)
- *  - lookX / lookY: -1..1, where the pupils look (e.g. follow typing progress)
- *  - busy:   true -> bulb pulses faster (use while a request is in flight)
+ *  - width:      rendered width in px (height scales automatically)
+ *  - shy:        true -> mosquito covers its eyes (use while a password field is focused)
+ *  - lookX/lookY: -1..1, where the pupils look (e.g. follow typing progress)
+ *  - busy:       true -> bulb pulses faster (use while a request is in flight)
+ *  - lightLevel: 0..1, brightness of the bulb (1 = fully lit, 0 = off)
  */
 export default function MosquitoMascot({
     width = 220,
@@ -33,6 +37,7 @@ export default function MosquitoMascot({
     lookX = 0,
     lookY = 0,
     busy = false,
+    lightLevel = 1,
 }) {
     const s = width / VB_W;
     const height = VB_H * s;
@@ -42,6 +47,7 @@ export default function MosquitoMascot({
     const glow = useRef(new Animated.Value(0)).current;
     const shyAnim = useRef(new Animated.Value(0)).current;
     const tap = useRef(new Animated.Value(1)).current;
+    const level = useRef(new Animated.Value(clamp(lightLevel, 0, 1))).current;
 
     // Gentle hovering.
     useEffect(() => {
@@ -120,6 +126,16 @@ export default function MosquitoMascot({
         }).start();
     }, [shy, shyAnim]);
 
+    // Smoothly follow the requested bulb brightness.
+    useEffect(() => {
+        Animated.timing(level, {
+            toValue: clamp(lightLevel, 0, 1),
+            duration: 120,
+            easing: Easing.linear,
+            useNativeDriver: true,
+        }).start();
+    }, [lightLevel, level]);
+
     const onTap = () => {
         Animated.sequence([
             Animated.spring(tap, { toValue: 1.1, friction: 4, useNativeDriver: true }),
@@ -131,7 +147,9 @@ export default function MosquitoMascot({
     const floatRot = float.interpolate({ inputRange: [0, 1], outputRange: ['-1deg', '1.5deg'] });
     const leftFlap = flap.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-22deg'] });
     const rightFlap = flap.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '22deg'] });
-    const glowOpacity = glow.interpolate({ inputRange: [0, 1], outputRange: [0.65, 1] });
+    const glowPulse = glow.interpolate({ inputRange: [0, 1], outputRange: [0.65, 1] });
+    const glowOpacity = Animated.multiply(glowPulse, level);
+    const dimOpacity = level.interpolate({ inputRange: [0, 1], outputRange: [0.9, 0] });
     const eyesOpacity = shyAnim.interpolate({
         inputRange: [0, 1],
         outputRange: [1, 0],
@@ -262,18 +280,13 @@ export default function MosquitoMascot({
                         </Svg>
                     </Animated.View>
 
-                    {/* Body: legs, lightbulb abdomen, thorax, head */}
+                    {/* Back of the body: legs + lightbulb glass */}
                     <Svg style={layer} width={width} height={height} viewBox={`0 0 ${VB_W} ${VB_H}`}>
                         <Defs>
                             <LinearGradient id="bulbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <Stop offset="0" stopColor="#FFFBEB" />
                                 <Stop offset="0.4" stopColor="#FDE047" />
                                 <Stop offset="1" stopColor="#D97706" />
-                            </LinearGradient>
-                            <LinearGradient id="capGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <Stop offset="0" stopColor="#9CA3AF" />
-                                <Stop offset="0.5" stopColor="#4B5563" />
-                                <Stop offset="1" stopColor="#1F2937" />
                             </LinearGradient>
                         </Defs>
 
@@ -288,10 +301,7 @@ export default function MosquitoMascot({
                         </G>
 
                         {/* Lightbulb abdomen */}
-                        <Path
-                            d="M 82 100 C 65 108, 55 125, 60 148 C 65 170, 85 185, 100 185 C 115 185, 135 170, 140 148 C 145 125, 135 108, 118 100 Z"
-                            fill="url(#bulbGradient)"
-                        />
+                        <Path d={BULB_PATH} fill="url(#bulbGradient)" />
                         <Path
                             d="M 92 110 L 96 140 M 108 110 L 104 140 M 94 140 Q 100 148 106 140"
                             stroke="#FFFFFF"
@@ -299,6 +309,26 @@ export default function MosquitoMascot({
                             fill="none"
                             opacity={0.9}
                         />
+                    </Svg>
+
+                    {/* Dark layer over the bulb: fades in as the light level drops */}
+                    <Animated.View pointerEvents="none" style={[layer, { opacity: dimOpacity }]}>
+                        <Svg width={width} height={height} viewBox={`0 0 ${VB_W} ${VB_H}`}>
+                            <Path d={BULB_PATH} fill="#1F2937" />
+                        </Svg>
+                    </Animated.View>
+
+                    {/* Front of the body: cap, thorax, head */}
+                    <Svg style={layer} width={width} height={height} viewBox={`0 0 ${VB_W} ${VB_H}`}>
+                        <Defs>
+                            <LinearGradient id="capGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <Stop offset="0" stopColor="#9CA3AF" />
+                                <Stop offset="0.5" stopColor="#4B5563" />
+                                <Stop offset="1" stopColor="#1F2937" />
+                            </LinearGradient>
+                        </Defs>
+
+                        {/* Metal cap */}
                         <Path
                             d="M 85 98 L 115 98 L 111 108 L 89 108 Z"
                             fill="url(#capGrad)"

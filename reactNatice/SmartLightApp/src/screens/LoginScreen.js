@@ -129,7 +129,7 @@ export default function LoginScreen({ navigation }) {
                                 {loading ? (
                                     <ActivityIndicator color={COLORS.onAmber} />
                                 ) : (
-                                    <Text style={styles.buttonText}>Illuminate & Login</Text>
+                                    <Text style={styles.buttonText}>Login</Text>
                                 )}
                             </AuthButton>
                         </View>
